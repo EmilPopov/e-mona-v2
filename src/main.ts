@@ -33,6 +33,11 @@ const app = createApp(App)
   .use(pinia)
   .use(router);
 
+// Init auth store BEFORE router.isReady() — the nav guard waits for initialized
+const { useAuthStore } = await import('@/stores/auth.store');
+const authStore = useAuthStore();
+authStore.init();
+
 router.isReady().then(() => {
   app.mount('#app');
 });

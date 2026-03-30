@@ -1,20 +1,92 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import type { RouteRecordRaw } from 'vue-router';
+import { useAuthStore } from '@/stores/auth.store';
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    redirect: '/home',
+    redirect: '/login',
+  },
+  // Guest-only routes
+  {
+    path: '/login',
+    component: () => import('@/views/auth/LoginPage.vue'),
+    meta: { guestOnly: true },
   },
   {
-    path: '/home',
-    component: () => import('@/views/HomePage.vue'),
+    path: '/register',
+    component: () => import('@/views/auth/RegisterPage.vue'),
+    meta: { guestOnly: true },
+  },
+  {
+    path: '/forgot-password',
+    component: () => import('@/views/auth/ForgotPasswordPage.vue'),
+    meta: { guestOnly: true },
+  },
+  // Auth-required routes
+  {
+    path: '/budget/setup',
+    component: () => import('@/views/HomePage.vue'), // Placeholder until Phase 2
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/tabs/',
+    component: () => import('@/views/TabsPage.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: '/tabs/home',
+      },
+      {
+        path: 'home',
+        component: () => import('@/views/HomePage.vue'),
+      },
+      {
+        path: 'more',
+        component: () => import('@/views/settings/MorePage.vue'),
+      },
+      {
+        path: 'more/profile',
+        component: () => import('@/views/settings/ProfileSettings.vue'),
+      },
+    ],
   },
 ];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+});
+
+router.beforeEach(async (to) => {
+  const authStore = useAuthStore();
+
+  // Wait for Firebase to check existing session
+  if (!authStore.initialized) {
+    await new Promise<void>((resolve) => {
+      const check = setInterval(() => {
+        if (authStore.initialized) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 50);
+    });
+  }
+
+  const isAuth = authStore.isAuthenticated;
+
+  if (to.meta.requiresAuth && !isAuth) {
+    return '/login';
+  }
+
+  if (to.meta.guestOnly && isAuth) {
+    const user = authStore.user;
+    if (user?.activeBudgetId) {
+      return '/tabs/home';
+    }
+    return '/budget/setup';
+  }
 });
 
 export default router;

@@ -3,12 +3,24 @@
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>
       <ion-tab-bar slot="bottom">
-        <!-- Tabs will be configured in Phase 2+ -->
+        <ion-tab-button tab="home" href="/tabs/home">
+          <ion-icon :icon="homeOutline" />
+          <ion-label>Home</ion-label>
+        </ion-tab-button>
+
+        <ion-tab-button tab="more" href="/tabs/more">
+          <ion-icon :icon="ellipsisHorizontalOutline" />
+          <ion-label>More</ion-label>
+        </ion-tab-button>
       </ion-tab-bar>
     </ion-tabs>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { IonTabBar, IonTabs, IonPage, IonRouterOutlet } from '@ionic/vue';
+import {
+  IonTabBar, IonTabButton, IonTabs, IonLabel,
+  IonIcon, IonPage, IonRouterOutlet,
+} from '@ionic/vue';
+import { homeOutline, ellipsisHorizontalOutline } from 'ionicons/icons';
 </script>

@@ -1,8 +1,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Phase 0: test mode — will be locked down in Phase 1
-    match /{document=**} {
+
+    // Users: only the owner can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Budgets: rules will be expanded in Phase 2
+    match /budgets/{budgetId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Invitations: rules will be expanded in Phase 4
+    match /invitations/{invitationId} {
       allow read, write: if request.auth != null;
     }
   }

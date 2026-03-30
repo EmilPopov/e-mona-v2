@@ -1,6 +1,5 @@
 import { initializeApp } from 'firebase/app';
 import {
-  getAuth,
   connectAuthEmulator,
   indexedDBLocalPersistence,
   initializeAuth,
@@ -32,11 +31,17 @@ const auth = initializeAuth(app, {
   persistence: indexedDBLocalPersistence,
 });
 
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-  }),
-});
+let db: ReturnType<typeof initializeFirestore>;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+  });
+} catch {
+  // Fallback if persistent cache fails (e.g., SharedWorker not available)
+  db = getFirestore(app);
+}
 
 const functions = getFunctions(app);
 

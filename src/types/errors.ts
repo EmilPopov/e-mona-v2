@@ -58,6 +58,16 @@ function getFirebaseErrorCode(error: unknown): string | null {
   return null;
 }
 
+export function mapZodError(zodError: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> }): AppError {
+  const firstIssue = zodError.issues[0];
+  const field = firstIssue?.path.map(String).join('.') || 'unknown';
+  return {
+    code: AppErrorCode.VALIDATION_ERROR,
+    message: `Invalid ${field}: ${firstIssue?.message ?? 'validation failed'}`,
+    originalError: zodError,
+  };
+}
+
 export function mapFirebaseError(error: unknown): AppError {
   const code = getFirebaseErrorCode(error);
 
