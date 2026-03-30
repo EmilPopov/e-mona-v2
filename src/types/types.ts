@@ -6,6 +6,7 @@ import type {
   BudgetSchema,
   BudgetCreateSchema,
   BudgetUpdateSchema,
+  BudgetMemberSchema,
   CategorySchema,
   CategoryCreateSchema,
   CategoryUpdateSchema,
@@ -15,11 +16,17 @@ import type {
   YearlyGoalSchema,
   YearlyGoalCreateSchema,
   YearlyGoalUpdateSchema,
+  CatalogItemSchema,
+  CatalogItemCreateSchema,
+  CatalogItemUpdateSchema,
   BudgetMonthSchema,
   BudgetMonthCreateSchema,
   BudgetMonthUpdateSchema,
-  ItemSchema,
-  ItemCreateSchema,
+  IncomeEntry,
+  AppliedFixedCost,
+  AppliedGoalDeduction,
+  MonthAlerts,
+  PurchaseItem,
   PurchaseSchema,
   PurchaseCreateSchema,
   PurchaseUpdateSchema,
@@ -28,13 +35,12 @@ import type {
   FavoriteSchema,
   FavoriteCreateSchema,
 } from './schemas';
-import type { CurrencyCode, UserRole, MonthStatus, GoalFrequency } from './enums';
+import type { CurrencyCode, UserRole, MonthStatus } from './enums';
 
 // Enums
 export type CurrencyCode = z.infer<typeof CurrencyCode>;
 export type UserRole = z.infer<typeof UserRole>;
 export type MonthStatus = z.infer<typeof MonthStatus>;
-export type GoalFrequency = z.infer<typeof GoalFrequency>;
 
 // User
 export type User = z.infer<typeof UserSchema>;
@@ -45,6 +51,7 @@ export type UserUpdate = z.infer<typeof UserUpdateSchema>;
 export type Budget = z.infer<typeof BudgetSchema>;
 export type BudgetCreate = z.infer<typeof BudgetCreateSchema>;
 export type BudgetUpdate = z.infer<typeof BudgetUpdateSchema>;
+export type BudgetMember = z.infer<typeof BudgetMemberSchema>;
 
 // Category
 export type Category = z.infer<typeof CategorySchema>;
@@ -61,16 +68,22 @@ export type YearlyGoal = z.infer<typeof YearlyGoalSchema>;
 export type YearlyGoalCreate = z.infer<typeof YearlyGoalCreateSchema>;
 export type YearlyGoalUpdate = z.infer<typeof YearlyGoalUpdateSchema>;
 
+// Catalog Item
+export type CatalogItem = z.infer<typeof CatalogItemSchema>;
+export type CatalogItemCreate = z.infer<typeof CatalogItemCreateSchema>;
+export type CatalogItemUpdate = z.infer<typeof CatalogItemUpdateSchema>;
+
 // Budget Month
 export type BudgetMonth = z.infer<typeof BudgetMonthSchema>;
 export type BudgetMonthCreate = z.infer<typeof BudgetMonthCreateSchema>;
 export type BudgetMonthUpdate = z.infer<typeof BudgetMonthUpdateSchema>;
-
-// Item
-export type Item = z.infer<typeof ItemSchema>;
-export type ItemCreate = z.infer<typeof ItemCreateSchema>;
+export type IncomeEntry = z.infer<typeof IncomeEntry>;
+export type AppliedFixedCost = z.infer<typeof AppliedFixedCost>;
+export type AppliedGoalDeduction = z.infer<typeof AppliedGoalDeduction>;
+export type MonthAlerts = z.infer<typeof MonthAlerts>;
 
 // Purchase
+export type PurchaseItem = z.infer<typeof PurchaseItem>;
 export type Purchase = z.infer<typeof PurchaseSchema>;
 export type PurchaseCreate = z.infer<typeof PurchaseCreateSchema>;
 export type PurchaseUpdate = z.infer<typeof PurchaseUpdateSchema>;

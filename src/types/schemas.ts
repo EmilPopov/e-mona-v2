@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CurrencyCode, UserRole, MonthStatus, GoalFrequency } from './enums';
+import { CurrencyCode, UserRole, MonthStatus } from './enums';
 
 // --- Shared sub-schemas ---
 
@@ -28,117 +28,161 @@ export const UserUpdateSchema = UserSchema.omit({ id: true, createdAt: true }).p
 
 // --- Budget ---
 
-const BudgetMember = z.object({
-  userId: z.string(),
+const BudgetMemberSchema = z.object({
   role: UserRole,
-  joinedAt: z.date(),
   displayName: z.string(),
-  avatarColor: z.string(),
+  email: z.string().email(),
+  joinedAt: z.date(),
 });
 
 export const BudgetSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   currency: CurrencyCode,
-  income: z.number().int().min(0),
-  ownerId: z.string(),
-  members: z.array(BudgetMember),
+  createdBy: z.string(),
   createdAt: z.date(),
-  updatedAt: z.date(),
+  memberIds: z.array(z.string()),
+  members: z.record(z.string(), BudgetMemberSchema),
 }).strict();
 
 export const BudgetCreateSchema = BudgetSchema.omit({ id: true });
-export const BudgetUpdateSchema = BudgetSchema.omit({ id: true, createdAt: true, ownerId: true }).partial();
+export const BudgetUpdateSchema = BudgetSchema.omit({ id: true, createdAt: true, createdBy: true }).partial();
 
-// --- Category ---
+// --- Category (subcollection: budgets/{budgetId}/categories/{categoryId}) ---
 
 export const CategorySchema = z.object({
   id: z.string(),
-  budgetId: z.string(),
   name: z.string().min(1),
-  icon: z.string(),
   color: z.string(),
+  icon: z.string(),
+  parentCategoryId: z.string().nullable(),
   sortOrder: z.number().int(),
+  isActive: z.boolean(),
 }).strict();
 
 export const CategoryCreateSchema = CategorySchema.omit({ id: true });
-export const CategoryUpdateSchema = CategorySchema.omit({ id: true, budgetId: true }).partial();
+export const CategoryUpdateSchema = CategorySchema.omit({ id: true }).partial();
 
-// --- Fixed Cost ---
+// --- Fixed Cost (subcollection: budgets/{budgetId}/fixedCosts/{costId}) ---
 
 export const FixedCostSchema = z.object({
   id: z.string(),
-  budgetId: z.string(),
   name: z.string().min(1),
   amount: z.number().int().min(0),
+  categoryId: z.string(),
+  icon: z.string(),
   isActive: z.boolean(),
-  createdAt: z.date(),
+  createdBy: z.string(),
 }).strict();
 
 export const FixedCostCreateSchema = FixedCostSchema.omit({ id: true });
-export const FixedCostUpdateSchema = FixedCostSchema.omit({ id: true, budgetId: true, createdAt: true }).partial();
+export const FixedCostUpdateSchema = FixedCostSchema.omit({ id: true, createdBy: true }).partial();
 
-// --- Yearly Goal ---
+// --- Yearly Goal (subcollection: budgets/{budgetId}/yearlyGoals/{goalId}) ---
 
 export const YearlyGoalSchema = z.object({
   id: z.string(),
-  budgetId: z.string(),
   name: z.string().min(1),
   targetAmount: z.number().int().min(0),
-  frequency: GoalFrequency,
+  monthlyAmount: z.number().int().min(0),
+  categoryId: z.string(),
+  icon: z.string(),
+  startMonth: z.string(), // "YYYY-MM"
   isActive: z.boolean(),
-  createdAt: z.date(),
+  createdBy: z.string(),
 }).strict();
 
 export const YearlyGoalCreateSchema = YearlyGoalSchema.omit({ id: true });
-export const YearlyGoalUpdateSchema = YearlyGoalSchema.omit({ id: true, budgetId: true, createdAt: true }).partial();
+export const YearlyGoalUpdateSchema = YearlyGoalSchema.omit({ id: true, createdBy: true }).partial();
 
-// --- Budget Month ---
+// --- Item Catalog (subcollection: budgets/{budgetId}/items/{itemId}) ---
+
+export const CatalogItemSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  nameLowercase: z.string(),
+  defaultPrice: z.number().int().min(0),
+  categoryId: z.string(),
+  icon: z.string(),
+  isActive: z.boolean(),
+  lastUsedAt: z.date().nullable(),
+}).strict();
+
+export const CatalogItemCreateSchema = CatalogItemSchema.omit({ id: true });
+export const CatalogItemUpdateSchema = CatalogItemSchema.omit({ id: true }).partial();
+
+// --- Budget Month (subcollection: budgets/{budgetId}/months/{YYYY-MM}) ---
+
+const IncomeEntry = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  amount: z.number().int().min(0),
+  addedBy: z.string(),
+});
+
+const AppliedFixedCost = z.object({
+  costId: z.string(),
+  name: z.string(),
+  amount: z.number().int().min(0),
+});
+
+const AppliedGoalDeduction = z.object({
+  goalId: z.string(),
+  name: z.string(),
+  monthlyAmount: z.number().int().min(0),
+  accumulatedTotal: z.number().int().min(0),
+});
+
+const MonthAlerts = z.object({
+  eightyPercentSent: z.boolean(),
+  overspentSent: z.boolean(),
+});
 
 export const BudgetMonthSchema = z.object({
   id: z.string(), // "YYYY-MM"
-  budgetId: z.string(),
-  income: z.number().int().min(0),
+  year: z.number().int(),
+  month: z.number().int().min(1).max(12),
+  status: MonthStatus,
+  incomes: z.array(IncomeEntry),
+  totalIncome: z.number().int().min(0),
   totalFixedCosts: z.number().int().min(0),
-  totalYearlyGoals: z.number().int().min(0),
+  totalGoalDeductions: z.number().int().min(0),
   totalPurchases: z.number().int().min(0),
   spendingBudget: z.number().int(),
-  remaining: z.number().int(),
-  status: MonthStatus,
-  createdAt: z.date(),
+  rolloverAmount: z.number().int(),
+  rolloverEnabled: z.boolean(),
+  confirmedAt: z.date().nullable(),
+  confirmedBy: z.string().nullable(),
+  appliedFixedCosts: z.array(AppliedFixedCost),
+  appliedGoalDeductions: z.array(AppliedGoalDeduction),
+  alerts: MonthAlerts,
 }).strict();
 
 export const BudgetMonthCreateSchema = BudgetMonthSchema.omit({ id: true });
-export const BudgetMonthUpdateSchema = BudgetMonthSchema.omit({ id: true, budgetId: true, createdAt: true }).partial();
+export const BudgetMonthUpdateSchema = BudgetMonthSchema.omit({ id: true }).partial();
 
-// --- Item (product in a purchase) ---
+// --- Purchase (subcollection: budgets/{budgetId}/months/{YYYY-MM}/purchases/{purchaseId}) ---
 
-export const ItemSchema = z.object({
+const PurchaseItem = z.object({
   id: z.string(),
   name: z.string().min(1),
   price: z.number().int().min(0),
   quantity: z.number().int().min(1),
   categoryId: z.string().nullable(),
-}).strict();
-
-export const ItemCreateSchema = ItemSchema.omit({ id: true });
-
-// --- Purchase (a shopping trip) ---
+});
 
 export const PurchaseSchema = z.object({
   id: z.string(),
-  budgetId: z.string(),
-  monthId: z.string(), // "YYYY-MM"
   storeName: z.string().min(1),
   totalAmount: z.number().int().min(0),
-  items: z.array(ItemSchema),
+  items: z.array(PurchaseItem),
   userId: z.string(),
   userDisplayName: z.string(),
   createdAt: z.date(),
 }).strict();
 
 export const PurchaseCreateSchema = PurchaseSchema.omit({ id: true });
-export const PurchaseUpdateSchema = PurchaseSchema.omit({ id: true, budgetId: true, monthId: true, userId: true, createdAt: true }).partial();
+export const PurchaseUpdateSchema = PurchaseSchema.omit({ id: true, userId: true, createdAt: true }).partial();
 
 // --- Invitation ---
 
@@ -161,9 +205,12 @@ export const FavoriteSchema = z.object({
   id: z.string(),
   userId: z.string(),
   name: z.string().min(1),
-  items: z.array(ItemCreateSchema),
+  items: z.array(PurchaseItem.omit({ id: true })),
   storeName: z.string(),
   createdAt: z.date(),
 }).strict();
 
 export const FavoriteCreateSchema = FavoriteSchema.omit({ id: true });
+
+// Re-export sub-schemas for use in services
+export { IncomeEntry, AppliedFixedCost, AppliedGoalDeduction, MonthAlerts, BudgetMemberSchema, PurchaseItem };
