@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.store';
+import { useBudgetStore } from '@/stores/budget.store';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -23,16 +24,23 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/auth/ForgotPasswordPage.vue'),
     meta: { guestOnly: true },
   },
-  // Auth-required routes
+  // Budget setup wizard
   {
     path: '/budget/setup',
-    component: () => import('@/views/HomePage.vue'), // Placeholder until Phase 2
+    component: () => import('@/views/budget/BudgetSetup.vue'),
     meta: { requiresAuth: true },
   },
+  // New month review
+  {
+    path: '/budget/month-review',
+    component: () => import('@/views/budget/NewMonthReview.vue'),
+    meta: { requiresAuth: true, requiresBudget: true },
+  },
+  // Tab routes
   {
     path: '/tabs/',
     component: () => import('@/views/TabsPage.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresBudget: true },
     children: [
       {
         path: '',
@@ -40,7 +48,7 @@ const routes: Array<RouteRecordRaw> = [
       },
       {
         path: 'home',
-        component: () => import('@/views/HomePage.vue'),
+        component: () => import('@/views/budget/BudgetDashboard.vue'),
       },
       {
         path: 'more',
@@ -49,6 +57,18 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'more/profile',
         component: () => import('@/views/settings/ProfileSettings.vue'),
+      },
+      {
+        path: 'more/fixed-costs',
+        component: () => import('@/views/budget/FixedCostsPage.vue'),
+      },
+      {
+        path: 'more/yearly-goals',
+        component: () => import('@/views/budget/YearlyGoalsPage.vue'),
+      },
+      {
+        path: 'more/categories',
+        component: () => import('@/views/budget/CategoriesPage.vue'),
       },
     ],
   },
@@ -76,16 +96,45 @@ router.beforeEach(async (to) => {
 
   const isAuth = authStore.isAuthenticated;
 
-  if (to.meta.requiresAuth && !isAuth) {
-    return '/login';
-  }
-
+  // Guest-only pages: redirect authenticated users
   if (to.meta.guestOnly && isAuth) {
     const user = authStore.user;
     if (user?.activeBudgetId) {
       return '/tabs/home';
     }
     return '/budget/setup';
+  }
+
+  // Auth-required pages: redirect to login
+  if (to.meta.requiresAuth && !isAuth) {
+    return '/login';
+  }
+
+  // Budget-required pages: ensure budget is loaded
+  if (to.meta.requiresBudget && isAuth) {
+    const user = authStore.user;
+    if (!user?.activeBudgetId) {
+      return '/budget/setup';
+    }
+
+    const budgetStore = useBudgetStore();
+
+    // Load budget if not already loaded or if it's a different budget
+    if (!budgetStore.budget || budgetStore.budget.id !== user.activeBudgetId) {
+      const success = await budgetStore.loadBudget(user.activeBudgetId);
+      if (!success) {
+        // Budget failed to load (deleted?) — send to setup
+        return '/budget/setup';
+      }
+    }
+
+    // Check if current month is a draft that needs review
+    if (
+      budgetStore.currentMonth?.status === 'draft' &&
+      to.path !== '/budget/month-review'
+    ) {
+      return '/budget/month-review';
+    }
   }
 });
 

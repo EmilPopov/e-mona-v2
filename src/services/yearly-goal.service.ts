@@ -33,7 +33,7 @@ function firestoreToYearlyGoal(id: string, data: Record<string, unknown>): Yearl
 
 export async function createYearlyGoal(
   budgetId: string,
-  data: YearlyGoalCreate,
+  data: Omit<YearlyGoalCreate, 'monthlyAmount'>,
 ): Promise<Result<string>> {
   try {
     const docRef = await addDoc(collectionRef(budgetId), {
