@@ -59,8 +59,11 @@ service cloud.firestore {
 
         // Purchases subcollection within months
         match /purchases/{purchaseId} {
-          allow read:  if isBudgetMember(budgetId);
-          allow write: if isBudgetMember(budgetId);
+          allow read:   if isBudgetMember(budgetId);
+          allow create: if isBudgetMember(budgetId)
+            && request.resource.data.createdBy == request.auth.uid;
+          allow update, delete: if isBudgetMember(budgetId)
+            && (resource.data.createdBy == request.auth.uid || isBudgetAdmin(budgetId));
         }
       }
     }

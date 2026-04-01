@@ -17,6 +17,7 @@ import * as monthService from '@/services/month.service';
 import * as fixedCostService from '@/services/fixed-cost.service';
 import * as yearlyGoalService from '@/services/yearly-goal.service';
 import * as categoryService from '@/services/category.service';
+import { usePurchasesStore } from '@/stores/purchases.store';
 
 export const useBudgetStore = defineStore('budget', () => {
   const budget = ref<Budget | null>(null);
@@ -139,6 +140,10 @@ export const useBudgetStore = defineStore('budget', () => {
           currentMonth.value = m;
         }),
       );
+
+      // 7. Subscribe to purchases for current month
+      const purchasesStore = usePurchasesStore();
+      purchasesStore.subscribe(budgetId, monthId);
 
       loading.value = false;
       return true;

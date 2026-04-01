@@ -502,3 +502,168 @@ describe('budgets/{budgetId}/months/{monthId}', () => {
     );
   });
 });
+
+// ── Purchase seed helper ──────────────────────────────────────────────
+async function seedMonth() {
+  await seedBudget();
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const adminDb = context.firestore();
+    await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03'), {
+      income: 500000,
+      totalFixedCosts: 120000,
+      totalGoalDeductions: 20000,
+      totalPurchases: 0,
+      spendingBudget: 360000,
+    });
+  });
+}
+
+const purchaseData = (userId: string) => ({
+  date: new Date(),
+  createdBy: userId,
+  createdByName: 'Test',
+  note: 'Lidl',
+  items: [{ id: 'i1', itemId: null, name: 'Bread', price: 150, quantity: 1, categoryId: 'cat1', categoryName: 'Food', categoryColor: '#4CAF50' }],
+  total: 150,
+  createdAt: new Date(),
+});
+
+describe('budgets/{budgetId}/months/{monthId}/purchases/{purchaseId}', () => {
+  it('allows member to read purchases', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('alice'));
+    });
+
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+    await assertSucceeds(getDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1')));
+  });
+
+  it('denies non-member from reading purchases', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('alice'));
+    });
+
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+    await assertFails(getDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1')));
+  });
+
+  it('allows member to create purchase with own userId', async () => {
+    await seedMonth();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    await assertSucceeds(
+      setDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('bob')),
+    );
+  });
+
+  it('denies member from creating purchase with another userId', async () => {
+    await seedMonth();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    await assertFails(
+      setDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('alice')),
+    );
+  });
+
+  it('allows creator to update their own purchase', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('bob'));
+    });
+
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), { note: 'Updated' }),
+    );
+  });
+
+  it('denies member from updating another member purchase', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('alice'));
+    });
+
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+    await assertFails(
+      updateDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), { note: 'Hacked' }),
+    );
+  });
+
+  it('allows admin to update any purchase', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('bob'));
+    });
+
+    const alice = testEnv.authenticatedContext('alice');
+    const db = alice.firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), { note: 'Admin edit' }),
+    );
+  });
+
+  it('allows creator to delete their own purchase', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('bob'));
+    });
+
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+    await assertSucceeds(
+      deleteDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1')),
+    );
+  });
+
+  it('denies member from deleting another member purchase', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('alice'));
+    });
+
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+    await assertFails(
+      deleteDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1')),
+    );
+  });
+
+  it('allows admin to delete any purchase', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('bob'));
+    });
+
+    const alice = testEnv.authenticatedContext('alice');
+    const db = alice.firestore();
+    await assertSucceeds(
+      deleteDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1')),
+    );
+  });
+
+  it('denies non-member from creating purchase', async () => {
+    await seedMonth();
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+
+    await assertFails(
+      setDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'), purchaseData('charlie')),
+    );
+  });
+});

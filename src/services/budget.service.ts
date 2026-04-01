@@ -81,10 +81,9 @@ export async function createBudget(
 
     const budgetRef = doc(collection(db, 'budgets'));
     const budgetId = budgetRef.id;
-    const batch = writeBatch(db);
 
-    // 1. Create the budget document
-    batch.set(budgetRef, {
+    // 1. Create the budget document first (must exist before subcollection rules can check it)
+    await setDoc(budgetRef, {
       ...parsed.data,
       createdAt: Timestamp.fromDate(now),
       members: {
@@ -95,7 +94,9 @@ export async function createBudget(
       },
     });
 
-    // 2. Seed default categories
+    // 2. Batch seed categories, items, and update user
+    const batch = writeBatch(db);
+
     const categoryIdMap = new Map<string, string>();
     for (const cat of DEFAULT_CATEGORIES) {
       const catRef = doc(collection(db, `budgets/${budgetId}/categories`));
@@ -110,7 +111,6 @@ export async function createBudget(
       });
     }
 
-    // 3. Seed default items
     for (const item of DEFAULT_ITEMS) {
       const categoryId = categoryIdMap.get(item.categoryName) ?? '';
       const itemRef = doc(collection(db, `budgets/${budgetId}/items`));
@@ -125,7 +125,6 @@ export async function createBudget(
       });
     }
 
-    // 4. Update user's activeBudgetId
     batch.update(doc(db, 'users', userId), { activeBudgetId: budgetId });
 
     await batch.commit();

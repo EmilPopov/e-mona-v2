@@ -8,6 +8,16 @@
           <ion-label>Home</ion-label>
         </ion-tab-button>
 
+        <ion-tab-button tab="purchases" href="/tabs/purchases">
+          <ion-icon :icon="receiptOutline" />
+          <ion-label>Purchases</ion-label>
+        </ion-tab-button>
+
+        <ion-tab-button tab="new-purchase" href="/tabs/purchases/new">
+          <ion-icon :icon="addCircleOutline" />
+          <ion-label>Add</ion-label>
+        </ion-tab-button>
+
         <ion-tab-button tab="more" href="/tabs/more">
           <ion-icon :icon="ellipsisHorizontalOutline" />
           <ion-label>More</ion-label>
@@ -22,5 +32,5 @@ import {
   IonTabBar, IonTabButton, IonTabs, IonLabel,
   IonIcon, IonPage, IonRouterOutlet,
 } from '@ionic/vue';
-import { homeOutline, ellipsisHorizontalOutline } from 'ionicons/icons';
+import { homeOutline, receiptOutline, addCircleOutline, ellipsisHorizontalOutline } from 'ionicons/icons';
 </script>

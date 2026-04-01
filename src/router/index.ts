@@ -51,6 +51,18 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/budget/BudgetDashboard.vue'),
       },
       {
+        path: 'purchases',
+        component: () => import('@/views/purchases/PurchasesListPage.vue'),
+      },
+      {
+        path: 'purchases/new',
+        component: () => import('@/views/purchases/NewPurchasePage.vue'),
+      },
+      {
+        path: 'purchases/:purchaseId',
+        component: () => import('@/views/purchases/PurchaseDetailPage.vue'),
+      },
+      {
         path: 'more',
         component: () => import('@/views/settings/MorePage.vue'),
       },

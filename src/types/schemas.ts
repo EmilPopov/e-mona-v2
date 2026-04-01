@@ -165,24 +165,28 @@ export const BudgetMonthUpdateSchema = BudgetMonthSchema.omit({ id: true }).part
 
 const PurchaseItem = z.object({
   id: z.string(),
+  itemId: z.string().nullable(),       // null if ad-hoc (not from catalog)
   name: z.string().min(1),
-  price: z.number().int().min(0),
+  price: z.number().int().min(0),      // price per unit in cents
   quantity: z.number().int().min(1),
-  categoryId: z.string().nullable(),
+  categoryId: z.string(),              // required — every item must have a category
+  categoryName: z.string(),            // denormalized for display
+  categoryColor: z.string(),           // denormalized for display
 });
 
 export const PurchaseSchema = z.object({
   id: z.string(),
-  storeName: z.string().min(1),
-  totalAmount: z.number().int().min(0),
+  date: z.date(),                         // When the purchase happened
+  createdBy: z.string(),                  // userId
+  createdByName: z.string(),              // Denormalized display name
+  note: z.string().nullable(),            // "Lidl shopping", "Lunch with team"
   items: z.array(PurchaseItem),
-  userId: z.string(),
-  userDisplayName: z.string(),
-  createdAt: z.date(),
+  total: z.number().int().min(0),         // Pre-calculated sum (price × qty)
+  createdAt: z.date(),                    // When logged in the app
 }).strict();
 
 export const PurchaseCreateSchema = PurchaseSchema.omit({ id: true });
-export const PurchaseUpdateSchema = PurchaseSchema.omit({ id: true, userId: true, createdAt: true }).partial();
+export const PurchaseUpdateSchema = PurchaseSchema.omit({ id: true, createdBy: true, createdAt: true }).partial();
 
 // --- Invitation ---
 

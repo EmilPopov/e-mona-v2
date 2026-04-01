@@ -2,4 +2,6 @@ import { initializeApp } from 'firebase-admin/app';
 
 initializeApp();
 
-// Cloud Functions will be added in Phase 3+
+export { onPurchaseCreate } from './triggers/onPurchaseCreate';
+export { onPurchaseDelete } from './triggers/onPurchaseDelete';
+export { onPurchaseUpdate } from './triggers/onPurchaseUpdate';
