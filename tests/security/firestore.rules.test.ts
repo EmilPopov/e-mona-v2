@@ -667,3 +667,101 @@ describe('budgets/{budgetId}/months/{monthId}/purchases/{purchaseId}', () => {
     );
   });
 });
+
+// ── Invitation helpers ──────────────────────────────────────────────
+const invitationData = (overrides: Record<string, unknown> = {}) => ({
+  code: 'A3K9F2',
+  budgetId: 'budget1',
+  budgetName: 'Test Budget',
+  role: 'member',
+  createdBy: 'alice',
+  createdByName: 'Alice',
+  status: 'active',
+  usedBy: null,
+  createdAt: new Date(),
+  expiresAt: new Date(Date.now() + 86400000),
+  ...overrides,
+});
+
+describe('invitations/{invitationId}', () => {
+  it('allows authenticated user to read invitations', async () => {
+    await seedBudget();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'invitations', 'inv1'), invitationData());
+    });
+
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+    await assertSucceeds(getDoc(doc(db, 'invitations', 'inv1')));
+  });
+
+  it('denies unauthenticated user from reading invitations', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'invitations', 'inv1'), invitationData());
+    });
+
+    const unauth = testEnv.unauthenticatedContext();
+    const db = unauth.firestore();
+    await assertFails(getDoc(doc(db, 'invitations', 'inv1')));
+  });
+
+  it('allows admin to create invitation', async () => {
+    await seedBudget();
+    const alice = testEnv.authenticatedContext('alice');
+    const db = alice.firestore();
+
+    await assertSucceeds(
+      setDoc(doc(db, 'invitations', 'inv1'), invitationData()),
+    );
+  });
+
+  it('denies non-admin from creating invitation', async () => {
+    await seedBudget();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    await assertFails(
+      setDoc(doc(db, 'invitations', 'inv1'), invitationData({ createdBy: 'bob' })),
+    );
+  });
+
+  it('allows authenticated user to update invitation (redeem)', async () => {
+    await seedBudget();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'invitations', 'inv1'), invitationData());
+    });
+
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'invitations', 'inv1'), { status: 'used', usedBy: 'charlie' }),
+    );
+  });
+
+  it('denies deletion of invitations', async () => {
+    await seedBudget();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'invitations', 'inv1'), invitationData());
+    });
+
+    const alice = testEnv.authenticatedContext('alice');
+    const db = alice.firestore();
+    await assertFails(deleteDoc(doc(db, 'invitations', 'inv1')));
+  });
+
+  it('allows any authenticated user to update budget (join flow)', async () => {
+    await seedBudget();
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+
+    await assertSucceeds(
+      updateDoc(doc(db, 'budgets', 'budget1'), {
+        memberIds: ['alice', 'bob', 'charlie'],
+      }),
+    );
+  });
+});

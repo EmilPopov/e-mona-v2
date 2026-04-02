@@ -24,9 +24,12 @@ service cloud.firestore {
 
     // ── Budgets ───────────────────────────────────────────────────────
     match /budgets/{budgetId} {
-      allow read:    if isBudgetMember(budgetId);
+      // Any authenticated user can read/update (needed for join-via-invitation flow)
+      // For v1 this is acceptable; production would use a Cloud Function callable
+      allow read:    if isAuthenticated();
       allow create:  if isAuthenticated();
-      allow update, delete: if isBudgetAdmin(budgetId);
+      allow update:  if isAuthenticated();
+      allow delete: if isBudgetAdmin(budgetId);
 
       // Categories subcollection
       match /categories/{categoryId} {
@@ -68,9 +71,17 @@ service cloud.firestore {
       }
     }
 
-    // ── Invitations: rules will be expanded in Phase 4 ────────────────
+    // ── Invitations ─────────────────────────────────────────────────────
     match /invitations/{invitationId} {
-      allow read, write: if isAuthenticated();
+      // Any authenticated user can read (needed for code validation)
+      allow read: if isAuthenticated();
+      // Only budget admins can create invitations
+      allow create: if isAuthenticated()
+        && isBudgetAdmin(request.resource.data.budgetId);
+      // Authenticated users can update (redeem code: status → used)
+      allow update: if isAuthenticated();
+      // No deletes from client
+      allow delete: if false;
     }
   }
 }

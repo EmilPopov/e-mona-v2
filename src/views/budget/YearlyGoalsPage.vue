@@ -100,6 +100,7 @@ import {
   IonItemSliding, IonItemOptions, IonItemOption,
 } from '@ionic/vue';
 import { addOutline, trashOutline, flagOutline } from 'ionicons/icons';
+import { onIonViewWillEnter } from '@ionic/vue';
 import { useBudgetStore } from '@/stores/budget.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCurrency } from '@/composables/useCurrency';
@@ -117,9 +118,12 @@ const newTarget = ref(0);
 
 function resetForm() {
   showAdd.value = false;
+  saving.value = false;
   newName.value = '';
   newTarget.value = 0;
 }
+
+onIonViewWillEnter(resetForm);
 
 async function addGoal() {
   if (!budgetStore.budget) return;

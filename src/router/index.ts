@@ -24,6 +24,12 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/auth/ForgotPasswordPage.vue'),
     meta: { guestOnly: true },
   },
+  // Budget welcome (create or join)
+  {
+    path: '/budget/welcome',
+    component: () => import('@/views/budget/BudgetWelcome.vue'),
+    meta: { requiresAuth: true },
+  },
   // Budget setup wizard
   {
     path: '/budget/setup',
@@ -55,7 +61,7 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/purchases/PurchasesListPage.vue'),
       },
       {
-        path: 'purchases/new',
+        path: 'new-purchase',
         component: () => import('@/views/purchases/NewPurchasePage.vue'),
       },
       {
@@ -81,6 +87,10 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'more/categories',
         component: () => import('@/views/budget/CategoriesPage.vue'),
+      },
+      {
+        path: 'more/members',
+        component: () => import('@/views/members/MembersPage.vue'),
       },
     ],
   },
@@ -114,7 +124,7 @@ router.beforeEach(async (to) => {
     if (user?.activeBudgetId) {
       return '/tabs/home';
     }
-    return '/budget/setup';
+    return '/budget/welcome';
   }
 
   // Auth-required pages: redirect to login
@@ -126,7 +136,7 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresBudget && isAuth) {
     const user = authStore.user;
     if (!user?.activeBudgetId) {
-      return '/budget/setup';
+      return '/budget/welcome';
     }
 
     const budgetStore = useBudgetStore();
@@ -136,7 +146,7 @@ router.beforeEach(async (to) => {
       const success = await budgetStore.loadBudget(user.activeBudgetId);
       if (!success) {
         // Budget failed to load (deleted?) — send to setup
-        return '/budget/setup';
+        return '/budget/welcome';
       }
     }
 

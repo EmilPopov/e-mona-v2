@@ -31,24 +31,32 @@ const auth = initializeAuth(app, {
   persistence: indexedDBLocalPersistence,
 });
 
-let db: ReturnType<typeof initializeFirestore>;
-try {
-  db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager(),
-    }),
-  });
-} catch {
-  // Fallback if persistent cache fails (e.g., SharedWorker not available)
-  db = getFirestore(app);
-}
-
 const functions = getFunctions(app);
 
+// Connect emulators BEFORE initializing Firestore with persistent cache
+// so the SDK knows where to sync cached writes
 if (import.meta.env.DEV) {
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, 'localhost', 8080);
   connectFunctionsEmulator(functions, 'localhost', 5001);
+}
+
+let db: ReturnType<typeof initializeFirestore>;
+if (import.meta.env.DEV) {
+  // In dev mode, use basic Firestore (no persistent cache)
+  // to avoid IndexedDB masking emulator connection issues
+  db = initializeFirestore(app, {});
+  connectFirestoreEmulator(db, 'localhost', 8080);
+} else {
+  // In production, use persistent cache for offline-first
+  try {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch {
+    db = getFirestore(app);
+  }
 }
 
 export { app, auth, db, functions };

@@ -75,11 +75,11 @@ export function useAuth() {
     isLoading.value = false;
 
     if (isOk(result)) {
-      const user = authStore.user;
+      const user = await authStore.waitForProfile();
       if (user?.activeBudgetId) {
         await router.replace('/tabs/home');
       } else {
-        await router.replace('/budget/setup');
+        await router.replace('/budget/welcome');
       }
     } else {
       loginError.value = result.error.message;
@@ -102,7 +102,7 @@ export function useAuth() {
 
     if (isOk(result)) {
       await showSuccess('Account created!');
-      await router.replace('/budget/setup');
+      await router.replace('/budget/welcome');
     } else {
       registerError.value = result.error.message;
     }

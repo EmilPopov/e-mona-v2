@@ -13,7 +13,7 @@
           <ion-label>Purchases</ion-label>
         </ion-tab-button>
 
-        <ion-tab-button tab="new-purchase" href="/tabs/purchases/new">
+        <ion-tab-button tab="new-purchase" href="/tabs/new-purchase">
           <ion-icon :icon="addCircleOutline" />
           <ion-label>Add</ion-label>
         </ion-tab-button>

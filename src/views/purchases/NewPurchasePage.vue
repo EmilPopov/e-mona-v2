@@ -121,7 +121,7 @@
         </ion-list-header>
 
         <ion-list>
-          <ion-item v-for="item in cartItems" :key="item.id">
+          <ion-item v-for="item in cartItems" :key="item.id" lines="full">
             <span
               class="cat-dot"
               :style="{ backgroundColor: item.categoryColor }"
@@ -131,18 +131,28 @@
               <h3>{{ item.name }}</h3>
               <p>{{ item.categoryName }} &middot; &times;{{ item.quantity }}</p>
             </ion-label>
-            <ion-note slot="end" class="item-subtotal">
-              {{ format(item.price * item.quantity) }}
-            </ion-note>
             <ion-button
-              slot="end"
               fill="clear"
               color="danger"
               size="small"
+              slot="end"
               @click="removeFromCart(item.id)"
             >
               <ion-icon :icon="closeOutline" />
             </ion-button>
+            <ion-item slot="end" class="cart-price-item" lines="none">
+              <ion-input
+                :value="fromCents(item.price)"
+                type="number"
+                step="0.01"
+                min="0"
+                inputmode="decimal"
+                placeholder="0.00"
+                class="cart-price-input"
+                @ionBlur="updateCartItemPrice(item.id, $event)"
+                @ionInput="updateCartItemPrice(item.id, $event)"
+              />
+            </ion-item>
           </ion-item>
         </ion-list>
 
@@ -173,6 +183,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { onIonViewWillEnter } from '@ionic/vue';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonFooter,
   IonButtons, IonBackButton, IonButton, IonIcon, IonSpinner,
@@ -195,7 +206,7 @@ const router = useRouter();
 const budgetStore = useBudgetStore();
 const authStore = useAuthStore();
 const purchasesStore = usePurchasesStore();
-const { format, toCents } = useCurrency();
+const { format, toCents, fromCents } = useCurrency();
 
 // --- State ---
 const note = ref('');
@@ -209,6 +220,21 @@ const manualName = ref('');
 const manualPrice = ref<number>(0);
 const manualQty = ref(1);
 const manualCategoryId = ref('');
+
+// --- Reset form on each visit (Ionic caches component) ---
+function resetForm() {
+  note.value = '';
+  searchQuery.value = '';
+  searchResults.value = [];
+  cartItems.value = [];
+  saving.value = false;
+  manualName.value = '';
+  manualPrice.value = 0;
+  manualQty.value = 1;
+  manualCategoryId.value = '';
+}
+
+onIonViewWillEnter(resetForm);
 
 // --- Computed ---
 const cartTotal = computed(() =>
@@ -287,6 +313,15 @@ function addManualItem() {
   manualCategoryId.value = '';
 }
 
+function updateCartItemPrice(itemId: string, event: CustomEvent) {
+  const raw = event.detail.value ?? (event.target as HTMLIonInputElement)?.value;
+  const value = parseFloat(raw);
+  const item = cartItems.value.find((i) => i.id === itemId);
+  if (item && !isNaN(value) && value >= 0) {
+    item.price = toCents(value);
+  }
+}
+
 function removeFromCart(itemId: string) {
   cartItems.value = cartItems.value.filter((i) => i.id !== itemId);
 }
@@ -340,9 +375,21 @@ async function savePurchase() {
   flex-shrink: 0;
 }
 
-.item-subtotal {
+.cart-price-item {
+  --inner-padding-end: 0;
+  --padding-start: 0;
+  --min-height: 36px;
+  max-width: 90px;
+}
+
+.cart-price-input {
+  --padding-start: 6px;
+  --padding-end: 6px;
+  --background: var(--ion-color-light);
+  --border-radius: 6px;
+  text-align: right;
+  font-size: 0.95em;
   font-weight: 600;
-  margin-right: 4px;
 }
 
 .cart-total {

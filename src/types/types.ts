@@ -91,6 +91,7 @@ export type PurchaseUpdate = z.infer<typeof PurchaseUpdateSchema>;
 // Invitation
 export type Invitation = z.infer<typeof InvitationSchema>;
 export type InvitationCreate = z.infer<typeof InvitationCreateSchema>;
+export type InvitationStatus = Invitation['status'];
 
 // Favorite
 export type Favorite = z.infer<typeof FavoriteSchema>;

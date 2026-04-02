@@ -21,7 +21,7 @@
       <div v-else-if="purchasesStore.purchases.length === 0" class="center-state">
         <ion-icon :icon="receiptOutline" class="empty-icon" />
         <p>No purchases this month</p>
-        <ion-button router-link="/tabs/purchases/new" fill="outline">
+        <ion-button router-link="/tabs/new-purchase" fill="outline">
           <ion-icon :icon="addOutline" slot="start" />
           Add Purchase
         </ion-button>
@@ -66,7 +66,7 @@
 
     <!-- FAB for quick add -->
     <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-      <ion-fab-button router-link="/tabs/purchases/new">
+      <ion-fab-button router-link="/tabs/new-purchase">
         <ion-icon :icon="addOutline" />
       </ion-fab-button>
     </ion-fab>

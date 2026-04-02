@@ -96,6 +96,7 @@ import {
   IonItemSliding, IonItemOptions, IonItemOption,
 } from '@ionic/vue';
 import { addOutline, trashOutline, walletOutline } from 'ionicons/icons';
+import { onIonViewWillEnter } from '@ionic/vue';
 import { useBudgetStore } from '@/stores/budget.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { useCurrency } from '@/composables/useCurrency';
@@ -112,9 +113,12 @@ const newAmount = ref(0);
 
 function resetForm() {
   showAdd.value = false;
+  saving.value = false;
   newName.value = '';
   newAmount.value = 0;
 }
+
+onIonViewWillEnter(resetForm);
 
 async function addCost() {
   if (!budgetStore.budget) return;

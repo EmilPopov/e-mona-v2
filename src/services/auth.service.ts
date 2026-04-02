@@ -166,13 +166,40 @@ export function subscribeToUserProfile(
   uid: string,
   callback: (user: User | null) => void,
 ): () => void {
+  let recovering = false;
   return onSnapshot(
     doc(db, 'users', uid),
-    (snapshot) => {
+    async (snapshot) => {
       if (snapshot.exists()) {
         callback(firestoreToUser(snapshot.id, snapshot.data()));
-      } else {
-        callback(null);
+      } else if (!recovering) {
+        // Profile missing (e.g. emulator data cleared) — attempt recovery
+        recovering = true;
+        const fbUser = auth.currentUser;
+        if (fbUser) {
+          const userData: UserCreate = {
+            email: fbUser.email ?? '',
+            displayName: fbUser.displayName ?? fbUser.email?.split('@')[0] ?? 'User',
+            avatarColor: randomAvatarColor(),
+            createdAt: new Date(),
+            activeBudgetId: null,
+            currency: 'EUR',
+            fcmTokens: [],
+            notificationPrefs: {
+              dailyReminder: true,
+              budgetAlerts: true,
+              reminderTime: '20:00',
+            },
+          };
+          const parsed = UserCreateSchema.safeParse(userData);
+          if (parsed.success) {
+            await setDoc(doc(db, 'users', uid), {
+              ...parsed.data,
+              createdAt: Timestamp.fromDate(parsed.data.createdAt),
+            });
+            // onSnapshot will fire again with the new doc
+          }
+        }
       }
     },
   );

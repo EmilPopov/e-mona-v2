@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:firebase": "firebase emulators:start",
+    "dev:firebase": "firebase emulators:start --import=./firebase-export --export-on-exit=./firebase-export",
+    "dev:firebase:fresh": "firebase emulators:start",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:firebase\"",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",

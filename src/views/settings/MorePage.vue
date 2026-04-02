@@ -13,19 +13,24 @@
           <ion-label>Profile & Settings</ion-label>
         </ion-item>
 
-        <ion-item router-link="/tabs/more/fixed-costs" detail>
+        <ion-item router-link="/tabs/more/members" detail>
+          <ion-icon :icon="peopleOutline" slot="start" />
+          <ion-label>Members</ion-label>
+        </ion-item>
+
+        <ion-item v-if="isAdmin" router-link="/tabs/more/fixed-costs" detail>
           <ion-icon :icon="walletOutline" slot="start" />
           <ion-label>Fixed Costs</ion-label>
         </ion-item>
 
-        <ion-item router-link="/tabs/more/yearly-goals" detail>
+        <ion-item v-if="isAdmin" router-link="/tabs/more/yearly-goals" detail>
           <ion-icon :icon="flagOutline" slot="start" />
           <ion-label>Yearly Goals</ion-label>
         </ion-item>
 
         <ion-item router-link="/tabs/more/categories" detail>
           <ion-icon :icon="pricetagsOutline" slot="start" />
-          <ion-label>Categories</ion-label>
+          <ion-label>{{ isAdmin ? 'Categories' : 'View Categories' }}</ion-label>
         </ion-item>
       </ion-list>
 
@@ -37,16 +42,29 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle,
   IonContent, IonList, IonItem, IonIcon, IonLabel, IonText,
 } from '@ionic/vue';
 import {
   personCircleOutline,
+  peopleOutline,
   walletOutline,
   flagOutline,
   pricetagsOutline,
 } from 'ionicons/icons';
+import { useBudgetStore } from '@/stores/budget.store';
+import { useAuthStore } from '@/stores/auth.store';
+
+const budgetStore = useBudgetStore();
+const authStore = useAuthStore();
+
+const isAdmin = computed(() => {
+  const uid = authStore.firebaseUser?.uid;
+  if (!uid || !budgetStore.budget) return false;
+  return budgetStore.budget.members[uid]?.role === 'admin';
+});
 </script>
 
 <style scoped>

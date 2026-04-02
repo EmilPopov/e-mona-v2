@@ -190,15 +190,20 @@ export const PurchaseUpdateSchema = PurchaseSchema.omit({ id: true, createdBy: t
 
 // --- Invitation ---
 
+const InvitationStatus = z.enum(['active', 'used', 'expired']);
+
 export const InvitationSchema = z.object({
   id: z.string(),
+  code: z.string(),
   budgetId: z.string(),
   budgetName: z.string(),
-  invitedBy: z.string(),
-  invitedByName: z.string(),
-  code: z.string(),
-  expiresAt: z.date(),
+  role: UserRole,
+  createdBy: z.string(),
+  createdByName: z.string(),
+  status: InvitationStatus,
+  usedBy: z.string().nullable(),
   createdAt: z.date(),
+  expiresAt: z.date(),
 }).strict();
 
 export const InvitationCreateSchema = InvitationSchema.omit({ id: true });

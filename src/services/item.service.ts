@@ -133,52 +133,64 @@ export async function autoSaveItems(
   items: PurchaseItemInput[],
 ): Promise<Result<void>> {
   try {
-    // Get all existing catalog items to check for duplicates
+    // Get all existing catalog items
     const snapshot = await getDocs(collectionRef(budgetId));
-    const existingNames = new Set<string>();
+    const existingByName = new Map<string, { id: string; defaultPrice: number }>();
     for (const d of snapshot.docs) {
       const data = d.data();
-      existingNames.add(data.nameLowercase as string);
-    }
-
-    // Filter to items that don't already exist in the catalog
-    const newItems = items.filter(
-      (item) => !existingNames.has(item.name.toLowerCase()),
-    );
-
-    if (newItems.length === 0) {
-      return ok(undefined);
-    }
-
-    // Deduplicate within the incoming array (keep first occurrence)
-    const seen = new Set<string>();
-    const uniqueNewItems: PurchaseItemInput[] = [];
-    for (const item of newItems) {
-      const lower = item.name.toLowerCase();
-      if (!seen.has(lower)) {
-        seen.add(lower);
-        uniqueNewItems.push(item);
-      }
-    }
-
-    // Batch create new catalog items
-    const batch = writeBatch(db);
-    const now = Timestamp.now();
-
-    for (const item of uniqueNewItems) {
-      const newDocRef = doc(collectionRef(budgetId));
-      batch.set(newDocRef, {
-        name: item.name,
-        nameLowercase: item.name.toLowerCase(),
-        defaultPrice: item.price,
-        categoryId: item.categoryId ?? '',
-        icon: '',
-        isActive: true,
-        lastUsedAt: now,
+      existingByName.set(data.nameLowercase as string, {
+        id: d.id,
+        defaultPrice: data.defaultPrice as number,
       });
     }
 
-    await batch.commit();
+    // Deduplicate incoming items (keep first occurrence)
+    const seen = new Set<string>();
+    const uniqueItems: PurchaseItemInput[] = [];
+    for (const item of items) {
+      const lower = item.name.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        uniqueItems.push(item);
+      }
+    }
+
+    const batch = writeBatch(db);
+    const now = Timestamp.now();
+    let hasWrites = false;
+
+    for (const item of uniqueItems) {
+      const lower = item.name.toLowerCase();
+      const existing = existingByName.get(lower);
+
+      if (existing) {
+        // Update defaultPrice if the purchase price is non-zero and different
+        if (item.price > 0 && item.price !== existing.defaultPrice) {
+          batch.update(doc(db, `budgets/${budgetId}/items`, existing.id), {
+            defaultPrice: item.price,
+            lastUsedAt: now,
+          });
+          hasWrites = true;
+        }
+      } else {
+        // Create new catalog item
+        const newDocRef = doc(collectionRef(budgetId));
+        batch.set(newDocRef, {
+          name: item.name,
+          nameLowercase: lower,
+          defaultPrice: item.price,
+          categoryId: item.categoryId ?? '',
+          icon: '',
+          isActive: true,
+          lastUsedAt: now,
+        });
+        hasWrites = true;
+      }
+    }
+
+    if (hasWrites) {
+      await batch.commit();
+    }
     return ok(undefined);
   } catch (error: unknown) {
     return fail(mapFirebaseError(error));

@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { defineStore } from 'pinia';
 import type { User as FirebaseUser } from 'firebase/auth';
 import type { User } from '@/types/types';
@@ -87,6 +87,24 @@ export const useAuthStore = defineStore('auth', () => {
     return authService.changePassword(currentPassword, newPassword);
   }
 
+  /** Waits for the Firestore user profile to load (up to timeout ms). */
+  function waitForProfile(timeout = 5000): Promise<User | null> {
+    if (user.value) return Promise.resolve(user.value);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        unwatch();
+        resolve(null);
+      }, timeout);
+      const unwatch = watch(user, (val) => {
+        if (val) {
+          clearTimeout(timer);
+          unwatch();
+          resolve(val);
+        }
+      });
+    });
+  }
+
   return {
     user,
     firebaseUser,
@@ -99,5 +117,6 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     updateProfile,
     changePassword,
+    waitForProfile,
   };
 });
