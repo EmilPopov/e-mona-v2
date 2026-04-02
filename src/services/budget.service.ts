@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { type Result, ok, fail } from '@/types/result';
-import { mapFirebaseError } from '@/types/errors';
+import { mapFirebaseError, mapZodError } from '@/types/errors';
 import { BudgetCreateSchema } from '@/types/schemas';
 import type { Budget, BudgetUpdate } from '@/types/types';
 import { DEFAULT_CATEGORIES } from '@/config/default-categories';
@@ -76,7 +76,7 @@ export async function createBudget(
 
     const parsed = BudgetCreateSchema.safeParse(budgetData);
     if (!parsed.success) {
-      return fail({ code: 'validation/error', message: 'Invalid budget data.' });
+      return fail(mapZodError(parsed.error));
     }
 
     const budgetRef = doc(collection(db, 'budgets'));

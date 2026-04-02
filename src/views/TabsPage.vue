@@ -1,5 +1,6 @@
 <template>
   <ion-page>
+    <OfflineBanner />
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>
       <ion-tab-bar slot="bottom">
@@ -33,4 +34,5 @@ import {
   IonIcon, IonPage, IonRouterOutlet,
 } from '@ionic/vue';
 import { homeOutline, receiptOutline, addCircleOutline, ellipsisHorizontalOutline } from 'ionicons/icons';
+import OfflineBanner from '@/components/common/OfflineBanner.vue';
 </script>

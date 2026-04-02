@@ -20,6 +20,14 @@
         />
       </ion-item>
 
+      <!-- Favorites Grid -->
+      <FavoritesGrid
+        :favorites="favList"
+        :loading="favLoading"
+        :cart-items="cartItems"
+        @add-to-cart="addFromFavorite"
+      />
+
       <!-- Item Search -->
       <ion-searchbar
         v-model="searchQuery"
@@ -189,6 +197,7 @@ import {
   IonButtons, IonBackButton, IonButton, IonIcon, IonSpinner,
   IonItem, IonInput, IonLabel, IonNote, IonList, IonListHeader,
   IonSelect, IonSelectOption, IonSearchbar,
+  alertController,
 } from '@ionic/vue';
 import {
   addOutline, closeOutline, checkmarkOutline, bagHandleOutline,
@@ -197,9 +206,12 @@ import { useBudgetStore } from '@/stores/budget.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { usePurchasesStore } from '@/stores/purchases.store';
 import { useCurrency } from '@/composables/useCurrency';
+import { useFavorites } from '@/composables/useFavorites';
 import * as itemService from '@/services/item.service';
+import * as favoritesService from '@/services/favorites.service';
 import { isOk } from '@/types/result';
-import type { CatalogItem } from '@/types/types';
+import FavoritesGrid from '@/components/purchases/FavoritesGrid.vue';
+import type { CatalogItem, Favorite } from '@/types/types';
 import type { PurchaseItem, PurchaseCreate } from '@/types/types';
 
 const router = useRouter();
@@ -207,6 +219,7 @@ const budgetStore = useBudgetStore();
 const authStore = useAuthStore();
 const purchasesStore = usePurchasesStore();
 const { format, toCents, fromCents } = useCurrency();
+const { favorites: favList, loading: favLoading } = useFavorites();
 
 // --- State ---
 const note = ref('');
@@ -326,6 +339,27 @@ function removeFromCart(itemId: string) {
   cartItems.value = cartItems.value.filter((i) => i.id !== itemId);
 }
 
+function addFromFavorite(fav: Favorite, overridePrice?: number) {
+  const existing = cartItems.value.find(
+    (c) => c.name === fav.itemName && c.categoryId === fav.categoryId,
+  );
+  if (existing) {
+    existing.quantity += 1;
+    return;
+  }
+
+  cartItems.value.push({
+    id: crypto.randomUUID(),
+    itemId: null,
+    name: fav.itemName,
+    price: overridePrice ?? fav.defaultPrice,
+    quantity: 1,
+    categoryId: fav.categoryId,
+    categoryName: fav.categoryName,
+    categoryColor: fav.categoryColor,
+  });
+}
+
 async function savePurchase() {
   if (cartItems.value.length === 0 || saving.value) return;
 
@@ -349,8 +383,59 @@ async function savePurchase() {
   saving.value = false;
 
   if (success) {
+    await suggestFavorites();
     router.back();
   }
+}
+
+async function suggestFavorites() {
+  const userId = authStore.firebaseUser?.uid;
+  if (!userId) return;
+
+  const favNames = new Set(favList.value.map((f: Favorite) => f.itemName));
+  const newItems = cartItems.value.filter((item) => !favNames.has(item.name));
+  if (newItems.length === 0) return;
+
+  const names = newItems.map((i) => i.name);
+  const label = names.length <= 3
+    ? names.join(', ')
+    : `${names.slice(0, 3).join(', ')} +${names.length - 3}`;
+
+  const alert = await alertController.create({
+    header: 'Add to Favorites?',
+    message: `Save ${label} for quick access next time?`,
+    buttons: [
+      { text: 'No', role: 'cancel' },
+      {
+        text: 'Yes',
+        handler: async () => {
+          const baseOrder = favList.value.length;
+          let failures = 0;
+          for (let i = 0; i < newItems.length; i++) {
+            const item = newItems[i];
+            const result = await favoritesService.addFavorite(userId, {
+              itemName: item.name,
+              defaultPrice: item.price,
+              categoryId: item.categoryId,
+              categoryName: item.categoryName,
+              categoryColor: item.categoryColor,
+              icon: 'bag-handle-outline',
+              sortOrder: baseOrder + i,
+              addedAt: new Date(),
+            });
+            if (!isOk(result)) failures++;
+          }
+          if (failures > 0) {
+            const { useToast } = await import('@/composables/useToast');
+            const { showError } = useToast();
+            showError(`Failed to save ${failures} favorite(s).`);
+          }
+        },
+      },
+    ],
+  });
+  await alert.present();
+  await alert.onDidDismiss();
 }
 </script>
 

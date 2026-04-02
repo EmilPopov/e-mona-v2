@@ -173,26 +173,26 @@ export async function redeemCode(
     await runTransaction(db, async (transaction) => {
       const invSnap = await transaction.get(invRef);
       if (!invSnap.exists()) {
-        throw new Error('Invitation not found.');
+        throw Object.assign(new Error('Invitation not found.'), { appCode: 'invitation/not-found' });
       }
 
       const inv = invSnap.data();
       if (inv.status !== 'active') {
-        throw new Error('This code is no longer active.');
+        throw Object.assign(new Error('This code is no longer active.'), { appCode: 'invitation/inactive' });
       }
       if ((inv.expiresAt as Timestamp).toDate() < new Date()) {
-        throw new Error('This invite code has expired.');
+        throw Object.assign(new Error('This invite code has expired.'), { appCode: 'invitation/expired' });
       }
 
       const budgetSnap = await transaction.get(budgetRef);
       if (!budgetSnap.exists()) {
-        throw new Error('Budget not found.');
+        throw Object.assign(new Error('Budget not found.'), { appCode: 'invitation/budget-not-found' });
       }
 
       const budgetData = budgetSnap.data();
       const memberIds = budgetData.memberIds as string[];
       if (memberIds.includes(userId)) {
-        throw new Error('You are already a member of this budget.');
+        throw Object.assign(new Error('You are already a member of this budget.'), { appCode: 'invitation/already-member' });
       }
 
       const now = new Date();
@@ -224,7 +224,8 @@ export async function redeemCode(
     return ok(budgetId);
   } catch (error: unknown) {
     if (error instanceof Error) {
-      return fail({ code: 'invitation/redeem-failed', message: error.message });
+      const code = (error as Error & { appCode?: string }).appCode ?? 'invitation/redeem-failed';
+      return fail({ code, message: error.message });
     }
     return fail(mapFirebaseError(error));
   }
@@ -268,7 +269,7 @@ export async function removeMember(
     await runTransaction(db, async (transaction) => {
       const budgetSnap = await transaction.get(budgetRef);
       if (!budgetSnap.exists()) {
-        throw new Error('Budget not found.');
+        throw Object.assign(new Error('Budget not found.'), { appCode: 'members/budget-not-found' });
       }
 
       const data = budgetSnap.data();
@@ -283,7 +284,8 @@ export async function removeMember(
     return ok(undefined);
   } catch (error: unknown) {
     if (error instanceof Error) {
-      return fail({ code: 'members/remove-failed', message: error.message });
+      const code = (error as Error & { appCode?: string }).appCode ?? 'members/remove-failed';
+      return fail({ code, message: error.message });
     }
     return fail(mapFirebaseError(error));
   }

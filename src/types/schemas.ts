@@ -208,15 +208,18 @@ export const InvitationSchema = z.object({
 
 export const InvitationCreateSchema = InvitationSchema.omit({ id: true });
 
-// --- Favorite ---
+// --- Favorite (per-user favorite items for quick-add) ---
 
 export const FavoriteSchema = z.object({
   id: z.string(),
-  userId: z.string(),
-  name: z.string().min(1),
-  items: z.array(PurchaseItem.omit({ id: true })),
-  storeName: z.string(),
-  createdAt: z.date(),
+  itemName: z.string().min(1),
+  defaultPrice: z.number().int().min(0),   // cents
+  categoryId: z.string(),
+  categoryName: z.string(),                 // denormalized
+  categoryColor: z.string(),                // denormalized
+  icon: z.string(),
+  sortOrder: z.number().int(),
+  addedAt: z.date(),
 }).strict();
 
 export const FavoriteCreateSchema = FavoriteSchema.omit({ id: true });

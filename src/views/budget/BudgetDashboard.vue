@@ -13,9 +13,7 @@
       </ion-refresher>
 
       <!-- Loading state -->
-      <div v-if="budgetStore.loading" class="loading-state">
-        <ion-spinner name="crescent" />
-      </div>
+      <DashboardSkeleton v-if="budgetStore.loading" />
 
       <!-- Error state -->
       <div v-else-if="budgetStore.error" class="error-state">
@@ -38,7 +36,7 @@
 import { computed } from 'vue';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonNote, IonSpinner, IonButton, IonIcon,
+  IonNote, IonButton, IonIcon,
   IonRefresher, IonRefresherContent,
 } from '@ionic/vue';
 import type { RefresherCustomEvent } from '@ionic/vue';
@@ -48,6 +46,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import BudgetSummaryCard from '@/components/budget/BudgetSummaryCard.vue';
 import BudgetBreakdown from '@/components/budget/BudgetBreakdown.vue';
 import RecentPurchasesList from '@/components/budget/RecentPurchasesList.vue';
+import DashboardSkeleton from '@/components/common/DashboardSkeleton.vue';
 
 const budgetStore = useBudgetStore();
 const authStore = useAuthStore();
@@ -85,7 +84,6 @@ async function retry() {
   font-size: 0.9em;
 }
 
-.loading-state,
 .error-state {
   display: flex;
   flex-direction: column;

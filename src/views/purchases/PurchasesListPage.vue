@@ -13,9 +13,7 @@
       </ion-refresher>
 
       <!-- Loading -->
-      <div v-if="purchasesStore.loading" class="center-state">
-        <ion-spinner name="crescent" />
-      </div>
+      <PurchaseListSkeleton v-if="purchasesStore.loading" />
 
       <!-- Empty state -->
       <div v-else-if="purchasesStore.purchases.length === 0" class="center-state">
@@ -77,13 +75,14 @@
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonNote,
   IonList, IonListHeader, IonItem, IonLabel, IonIcon, IonButton,
-  IonSpinner, IonRefresher, IonRefresherContent,
+  IonRefresher, IonRefresherContent,
   IonItemSliding, IonItemOptions, IonItemOption,
   IonFab, IonFabButton,
   alertController,
 } from '@ionic/vue';
 import type { RefresherCustomEvent } from '@ionic/vue';
 import { addOutline, receiptOutline, trashOutline } from 'ionicons/icons';
+import PurchaseListSkeleton from '@/components/common/PurchaseListSkeleton.vue';
 import { computed } from 'vue';
 import { useBudgetStore } from '@/stores/budget.store';
 import { useAuthStore } from '@/stores/auth.store';
