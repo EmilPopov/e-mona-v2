@@ -65,6 +65,10 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/purchases/NewPurchasePage.vue'),
       },
       {
+        path: 'analytics',
+        component: () => import('@/views/analytics/AnalyticsDashboard.vue'),
+      },
+      {
         path: 'purchases/:purchaseId',
         component: () => import('@/views/purchases/PurchaseDetailPage.vue'),
       },

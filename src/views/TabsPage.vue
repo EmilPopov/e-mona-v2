@@ -19,6 +19,11 @@
           <ion-label>Add</ion-label>
         </ion-tab-button>
 
+        <ion-tab-button tab="analytics" href="/tabs/analytics">
+          <ion-icon :icon="statsChartOutline" />
+          <ion-label>Analytics</ion-label>
+        </ion-tab-button>
+
         <ion-tab-button tab="more" href="/tabs/more">
           <ion-icon :icon="ellipsisHorizontalOutline" />
           <ion-label>More</ion-label>
@@ -33,6 +38,6 @@ import {
   IonTabBar, IonTabButton, IonTabs, IonLabel,
   IonIcon, IonPage, IonRouterOutlet,
 } from '@ionic/vue';
-import { homeOutline, receiptOutline, addCircleOutline, ellipsisHorizontalOutline } from 'ionicons/icons';
+import { homeOutline, receiptOutline, addCircleOutline, statsChartOutline, ellipsisHorizontalOutline } from 'ionicons/icons';
 import OfflineBanner from '@/components/common/OfflineBanner.vue';
 </script>
