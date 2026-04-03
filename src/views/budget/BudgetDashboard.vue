@@ -43,6 +43,7 @@ import type { RefresherCustomEvent } from '@ionic/vue';
 import { alertCircleOutline } from 'ionicons/icons';
 import { useBudgetStore } from '@/stores/budget.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useMonthFormat } from '@/composables/useMonthFormat';
 import BudgetSummaryCard from '@/components/budget/BudgetSummaryCard.vue';
 import BudgetBreakdown from '@/components/budget/BudgetBreakdown.vue';
 import RecentPurchasesList from '@/components/budget/RecentPurchasesList.vue';
@@ -50,17 +51,7 @@ import DashboardSkeleton from '@/components/common/DashboardSkeleton.vue';
 
 const budgetStore = useBudgetStore();
 const authStore = useAuthStore();
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const monthLabel = computed(() => {
-  const m = budgetStore.currentMonth;
-  if (!m) return '';
-  return `${MONTH_NAMES[m.month - 1]} ${String(m.year).slice(2)}`;
-});
+const { monthLabel } = useMonthFormat();
 
 async function handleRefresh(event: RefresherCustomEvent) {
   const budgetId = authStore.user?.activeBudgetId;

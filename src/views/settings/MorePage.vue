@@ -32,6 +32,11 @@
           <ion-icon :icon="pricetagsOutline" slot="start" />
           <ion-label>{{ isAdmin ? 'Categories' : 'View Categories' }}</ion-label>
         </ion-item>
+
+        <ion-item router-link="/tabs/more/notifications" detail>
+          <ion-icon :icon="notificationsOutline" slot="start" />
+          <ion-label>Notifications</ion-label>
+        </ion-item>
       </ion-list>
 
       <div class="version-label">
@@ -53,6 +58,7 @@ import {
   walletOutline,
   flagOutline,
   pricetagsOutline,
+  notificationsOutline,
 } from 'ionicons/icons';
 import { useBudgetStore } from '@/stores/budget.store';
 import { useAuthStore } from '@/stores/auth.store';

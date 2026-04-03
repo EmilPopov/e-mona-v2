@@ -116,6 +116,7 @@ import { downloadOutline } from 'ionicons/icons';
 import { useBudgetStore } from '@/stores/budget.store';
 import { usePurchasesStore } from '@/stores/purchases.store';
 import { useCurrency } from '@/composables/useCurrency';
+import { useMonthFormat } from '@/composables/useMonthFormat';
 import { useAnalytics, monthlyTrend, type MonthlyTrend } from '@/composables/useAnalytics';
 import { exportPurchasesCsv } from '@/services/csv-export.service';
 import * as monthService from '@/services/month.service';
@@ -130,22 +131,12 @@ import MemberSpending from '@/components/analytics/MemberSpending.vue';
 const budgetStore = useBudgetStore();
 const purchasesStore = usePurchasesStore();
 const { format } = useCurrency();
+const { monthLabel } = useMonthFormat();
 const { categoryBreakdown, memberBreakdown, topItemsList, health } = useAnalytics();
 
 const activeTab = ref('overview');
 const trendData = ref<MonthlyTrend[]>([]);
 const exporting = ref(false);
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const monthLabel = computed(() => {
-  const m = budgetStore.currentMonth;
-  if (!m) return '';
-  return `${MONTH_NAMES[m.month - 1]} ${String(m.year).slice(2)}`;
-});
 
 const maxCategoryTotal = computed(() => {
   if (categoryBreakdown.value.length === 0) return 0;

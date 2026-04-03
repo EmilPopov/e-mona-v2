@@ -83,28 +83,18 @@ import {
 import type { RefresherCustomEvent } from '@ionic/vue';
 import { addOutline, receiptOutline, trashOutline } from 'ionicons/icons';
 import PurchaseListSkeleton from '@/components/common/PurchaseListSkeleton.vue';
-import { computed } from 'vue';
 import { useBudgetStore } from '@/stores/budget.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { usePurchasesStore } from '@/stores/purchases.store';
 import { useCurrency } from '@/composables/useCurrency';
+import { useMonthFormat } from '@/composables/useMonthFormat';
 import type { Purchase } from '@/types/types';
 
 const budgetStore = useBudgetStore();
 const authStore = useAuthStore();
 const purchasesStore = usePurchasesStore();
 const { format } = useCurrency();
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const monthLabel = computed(() => {
-  const m = budgetStore.currentMonth;
-  if (!m) return '';
-  return `${MONTH_NAMES[m.month - 1]} ${String(m.year).slice(2)}`;
-});
+const { monthLabel } = useMonthFormat();
 
 function dayTotal(group: Purchase[]): number {
   return group.reduce((sum, p) => sum + p.total, 0);

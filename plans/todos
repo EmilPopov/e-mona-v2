@@ -1,0 +1,11 @@
+card:
+    - item's delete button missing
+    - section "manually add item to list to hidden by default" - show on click
+    - separate Favorites page 
+        **Alternative: Manual add**
+        - In the purchases list, swipe an item → "⭐ Add to Favorites"
+        - In favorites management page → "+" button to add manually
+        - also purchases flow example 
+            - the item search remains 
+            - before the search to have categories select.
+            - after category selected to see products grid sorted by favorites from this category first. 

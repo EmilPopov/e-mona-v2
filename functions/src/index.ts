@@ -5,3 +5,5 @@ initializeApp();
 export { onPurchaseCreate } from './triggers/onPurchaseCreate';
 export { onPurchaseDelete } from './triggers/onPurchaseDelete';
 export { onPurchaseUpdate } from './triggers/onPurchaseUpdate';
+export { onMonthUpdate } from './triggers/onMonthUpdate';
+export { dailyReminder } from './scheduled/dailyReminder';

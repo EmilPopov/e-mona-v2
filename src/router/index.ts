@@ -96,6 +96,10 @@ const routes: Array<RouteRecordRaw> = [
         path: 'more/members',
         component: () => import('@/views/members/MembersPage.vue'),
       },
+      {
+        path: 'more/notifications',
+        component: () => import('@/views/settings/NotificationSettings.vue'),
+      },
     ],
   },
 ];

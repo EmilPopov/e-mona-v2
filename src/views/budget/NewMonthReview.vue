@@ -136,24 +136,21 @@ import {
 import { addOutline, trashOutline } from 'ionicons/icons';
 import { useBudgetStore } from '@/stores/budget.store';
 import { useCurrency } from '@/composables/useCurrency';
+import { useMonthFormat } from '@/composables/useMonthFormat';
 
 const router = useRouter();
 const budgetStore = useBudgetStore();
 const { format, toCents, fromCents } = useCurrency();
+const { formatMonthLabel } = useMonthFormat();
 
 const confirming = ref(false);
 const rolloverEnabled = ref(false);
 
 const month = computed(() => budgetStore.currentMonth);
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
 const monthTitle = computed(() => {
   if (!month.value) return 'New Month';
-  return `${MONTH_NAMES[month.value.month - 1]} ${month.value.year}`;
+  return formatMonthLabel(month.value, false); // Use full year
 });
 
 // Editable incomes (display amounts, not cents)
