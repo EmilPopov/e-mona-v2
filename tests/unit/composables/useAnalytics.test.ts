@@ -1,4 +1,32 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock Firebase to prevent initialization errors in test environment
+vi.mock('@/config/firebase', () => ({
+  db: {},
+  auth: {},
+}));
+
+vi.mock('firebase/auth', () => ({
+  onAuthStateChanged: vi.fn(),
+  indexedDBLocalPersistence: {},
+  initializeAuth: vi.fn(() => ({})),
+}));
+
+vi.mock('firebase/firestore', () => ({
+  doc: vi.fn(),
+  getDoc: vi.fn(),
+  setDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  onSnapshot: vi.fn(),
+  collection: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  orderBy: vi.fn(),
+  Timestamp: { fromDate: vi.fn(), now: vi.fn() },
+  getFirestore: vi.fn(() => ({})),
+  increment: vi.fn(),
+}));
+
 import {
   spendingByCategory,
   dailySpending,

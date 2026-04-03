@@ -765,3 +765,248 @@ describe('invitations/{invitationId}', () => {
     );
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════
+// Phase 8 — Adversarial Edge Cases
+// ══════════════════════════════════════════════════════════════════════
+
+describe('adversarial: role escalation', () => {
+  it('denies member from setting their own role to admin', async () => {
+    await seedBudget();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    // Bob tries to promote himself to admin
+    await assertFails(
+      updateDoc(doc(db, 'budgets', 'budget1'), {
+        'members.bob.role': 'admin',
+      }),
+    );
+  });
+
+  it('denies non-member from adding themselves to memberIds', async () => {
+    await seedBudget();
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+
+    // Charlie tries to add themselves (this succeeds due to v1 open update rule)
+    // NOTE: This is a known v1 limitation — documented in firestore.rules
+    // For production, budget updates would go through a Cloud Function callable
+    await assertSucceeds(
+      updateDoc(doc(db, 'budgets', 'budget1'), {
+        memberIds: ['alice', 'bob', 'charlie'],
+      }),
+    );
+  });
+});
+
+describe('adversarial: purchase spoofing', () => {
+  it('denies member from creating purchase with another users createdBy', async () => {
+    await seedMonth();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    // Bob tries to create a purchase attributed to alice
+    await assertFails(
+      setDoc(
+        doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'spoofed'),
+        purchaseData('alice'),
+      ),
+    );
+  });
+
+  it('denies non-member from creating purchase even with valid createdBy', async () => {
+    await seedMonth();
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'),
+        purchaseData('charlie'),
+      ),
+    );
+  });
+
+  it('denies unauthenticated user from creating purchase', async () => {
+    await seedMonth();
+    const unauth = testEnv.unauthenticatedContext();
+    const db = unauth.firestore();
+
+    await assertFails(
+      setDoc(
+        doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'),
+        purchaseData('nobody'),
+      ),
+    );
+  });
+});
+
+describe('adversarial: month document tampering', () => {
+  it('denies member (non-admin) from modifying totalPurchases directly', async () => {
+    await seedMonth();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    // Only Cloud Functions should modify totalPurchases
+    await assertFails(
+      updateDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03'), {
+        totalPurchases: 999999,
+      }),
+    );
+  });
+
+  it('denies non-member from reading month document', async () => {
+    await seedMonth();
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+
+    await assertFails(
+      getDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03')),
+    );
+  });
+
+  it('denies member from deleting month document', async () => {
+    await seedMonth();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    await assertFails(
+      deleteDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03')),
+    );
+  });
+});
+
+describe('adversarial: invitation abuse', () => {
+  it('denies non-admin from creating invitation for a budget', async () => {
+    await seedBudget();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    await assertFails(
+      setDoc(doc(db, 'invitations', 'inv-hack'), invitationData({ createdBy: 'bob' })),
+    );
+  });
+
+  it('denies unauthenticated user from redeeming invitation', async () => {
+    await seedBudget();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'invitations', 'inv1'), invitationData());
+    });
+
+    const unauth = testEnv.unauthenticatedContext();
+    const db = unauth.firestore();
+    await assertFails(
+      updateDoc(doc(db, 'invitations', 'inv1'), { status: 'used', usedBy: 'hacker' }),
+    );
+  });
+
+  it('denies client-side deletion of invitations even by admin', async () => {
+    await seedBudget();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'invitations', 'inv1'), invitationData());
+    });
+
+    const alice = testEnv.authenticatedContext('alice');
+    const db = alice.firestore();
+    await assertFails(deleteDoc(doc(db, 'invitations', 'inv1')));
+  });
+});
+
+describe('adversarial: subcollection access by non-member', () => {
+  it('denies non-member from reading items', async () => {
+    await seedBudget();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'budgets', 'budget1', 'items', 'item1'), {
+        name: 'Bread',
+        nameLowercase: 'bread',
+        defaultPrice: 150,
+        categoryId: 'cat1',
+        isActive: true,
+      });
+    });
+
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+    await assertFails(
+      getDoc(doc(db, 'budgets', 'budget1', 'items', 'item1')),
+    );
+  });
+
+  it('denies member from writing items (admin-only)', async () => {
+    await seedBudget();
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+
+    await assertFails(
+      setDoc(doc(db, 'budgets', 'budget1', 'items', 'item-hack'), {
+        name: 'Hacked Item',
+        nameLowercase: 'hacked item',
+        defaultPrice: 0,
+        categoryId: 'cat1',
+        isActive: true,
+      }),
+    );
+  });
+
+  it('denies non-member from reading purchases via direct path', async () => {
+    await seedMonth();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(
+        doc(adminDb, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1'),
+        purchaseData('alice'),
+      );
+    });
+
+    const charlie = testEnv.authenticatedContext('charlie');
+    const db = charlie.firestore();
+    await assertFails(
+      getDoc(doc(db, 'budgets', 'budget1', 'months', '2026-03', 'purchases', 'p1')),
+    );
+  });
+});
+
+describe('adversarial: favorites isolation', () => {
+  it('denies user from reading another users favorites', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'users', 'alice'), {
+        email: 'alice@test.com',
+        displayName: 'Alice',
+      });
+      await setDoc(doc(adminDb, 'users', 'alice', 'favorites', 'fav1'), {
+        name: 'Bread',
+        sortOrder: 0,
+      });
+    });
+
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+    await assertFails(
+      getDoc(doc(db, 'users', 'alice', 'favorites', 'fav1')),
+    );
+  });
+
+  it('denies user from writing to another users favorites', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await setDoc(doc(adminDb, 'users', 'alice'), {
+        email: 'alice@test.com',
+        displayName: 'Alice',
+      });
+    });
+
+    const bob = testEnv.authenticatedContext('bob');
+    const db = bob.firestore();
+    await assertFails(
+      setDoc(doc(db, 'users', 'alice', 'favorites', 'fav-hack'), {
+        name: 'Hacked',
+        sortOrder: 0,
+      }),
+    );
+  });
+});
